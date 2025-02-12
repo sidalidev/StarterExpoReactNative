@@ -17,6 +17,7 @@ export default function LoginScreen() {
   }
 
   const isFormValid = username && password
+
   return (
     <View style={styles.container}>
       <TextInput

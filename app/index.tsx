@@ -1,5 +1,5 @@
-import LoginScreen from './login'
+import TodoList from './todos'
 
 export default function Index() {
-  return <LoginScreen />
+  return <TodoList />
 }
