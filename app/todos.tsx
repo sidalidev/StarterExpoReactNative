@@ -8,20 +8,38 @@ import {
   FlatList,
   Animated,
   Vibration,
+  ScrollView,
 } from 'react-native'
 import * as Haptics from 'expo-haptics'
+
+type Category = {
+  id: string
+  name: string
+  color: string
+}
+
+const CATEGORIES: Category[] = [
+  { id: 'all', name: 'Tous', color: '#007AFF' },
+  { id: 'personal', name: 'Personnel', color: '#FF9B9B' },
+  { id: 'work', name: 'Travail', color: '#94B3FD' },
+  { id: 'shopping', name: 'Courses', color: '#B5F1CC' },
+]
 
 type Todo = {
   id: string
   text: string
   done: boolean
   isEditing?: boolean
+  category: string
 }
 
 export default function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [newTodo, setNewTodo] = useState('')
   const [editingText, setEditingText] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [newTodoCategory, setNewTodoCategory] = useState('personal')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const scaleAnims = useRef(new Map<string, Animated.Value>()).current
 
@@ -31,6 +49,7 @@ export default function TodoList() {
         id: Date.now().toString(),
         text: newTodo.trim(),
         done: false,
+        category: newTodoCategory,
       }
       setTodos([...todos, newTodoItem])
       scaleAnims.set(newTodoItem.id, new Animated.Value(1))
@@ -82,15 +101,76 @@ export default function TodoList() {
     )
   }
 
+  const filteredTodos = todos.filter((todo) => {
+    const matchesCategory =
+      selectedCategory === 'all' || todo.category === selectedCategory
+    const matchesSearch = todo.text
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
+
+  const CategoryPill = ({ category }: { category: Category }) => (
+    <Pressable
+      style={[
+        styles.categoryPill,
+        { backgroundColor: category.color },
+        selectedCategory === category.id && styles.categoryPillSelected,
+      ]}
+      onPress={() => setSelectedCategory(category.id)}
+    >
+      <Text style={styles.categoryPillText}>{category.name}</Text>
+    </Pressable>
+  )
+
   return (
     <View style={styles.container}>
-      <View style={styles.inputContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoriesContainer}
+      >
+        {CATEGORIES.map((category) => (
+          <CategoryPill key={category.id} category={category} />
+        ))}
+      </ScrollView>
+
+      <View style={styles.searchContainer}>
         <TextInput
-          style={styles.input}
-          value={newTodo}
-          onChangeText={setNewTodo}
-          placeholder="Ajouter une tâche"
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Rechercher une tâche..."
+          clearButtonMode="while-editing"
         />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <View style={styles.newTodoContainer}>
+          <TextInput
+            style={styles.input}
+            value={newTodo}
+            onChangeText={setNewTodo}
+            placeholder="Ajouter une tâche"
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categorySelector}
+          >
+            {CATEGORIES.filter((c) => c.id !== 'all').map((category) => (
+              <Pressable
+                key={category.id}
+                style={[
+                  styles.categoryDot,
+                  { backgroundColor: category.color },
+                  newTodoCategory === category.id && styles.categoryDotSelected,
+                ]}
+                onPress={() => setNewTodoCategory(category.id)}
+              />
+            ))}
+          </ScrollView>
+        </View>
         <Pressable
           style={({ pressed }) => [
             styles.addButton,
@@ -105,7 +185,7 @@ export default function TodoList() {
       </View>
 
       <FlatList
-        data={todos}
+        data={filteredTodos}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <Animated.View
@@ -114,6 +194,16 @@ export default function TodoList() {
               { transform: [{ scale: scaleAnims.get(item.id) || 1 }] },
             ]}
           >
+            <View
+              style={[
+                styles.categoryIndicator,
+                {
+                  backgroundColor: CATEGORIES.find(
+                    (c) => c.id === item.category,
+                  )?.color,
+                },
+              ]}
+            />
             <Pressable
               style={styles.checkbox}
               onPress={() => toggleDone(item.id)}
@@ -168,20 +258,22 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     marginBottom: 20,
+    paddingHorizontal: 20,
+    height: 100,
   },
   input: {
     flex: 1,
-    height: 50,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 15,
     marginRight: 10,
     fontSize: 16,
+    backgroundColor: '#fff',
   },
   addButton: {
-    width: 50,
-    height: 50,
+    width: 45,
+    height: 45,
     backgroundColor: '#007AFF',
     borderRadius: 8,
     justifyContent: 'center',
@@ -246,5 +338,63 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  categoriesContainer: {
+    flexGrow: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    height: 50,
+  },
+  categoryPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    opacity: 0.8,
+  },
+  categoryPillSelected: {
+    opacity: 1,
+    transform: [{ scale: 1.05 }],
+  },
+  categoryPillText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  newTodoContainer: {
+    flex: 1,
+  },
+  categorySelector: {
+    height: 30,
+    marginTop: 8,
+  },
+  categoryDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 8,
+    opacity: 0.6,
+  },
+  categoryDotSelected: {
+    opacity: 1,
+    transform: [{ scale: 1.2 }],
+  },
+  categoryIndicator: {
+    width: 4,
+    height: '100%',
+    position: 'absolute',
+    left: 0,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  searchInput: {
+    height: 45,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 16,
   },
 })
