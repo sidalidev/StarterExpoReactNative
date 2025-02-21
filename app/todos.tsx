@@ -9,6 +9,7 @@ import {
   Animated,
   Vibration,
   ScrollView,
+  Dimensions,
 } from 'react-native'
 import * as Haptics from 'expo-haptics'
 
@@ -183,66 +184,90 @@ export default function TodoList() {
           <Text style={styles.addButtonText}>+</Text>
         </Pressable>
       </View>
+      {/* <View
+        style={}
+      >
+        <Text>Hey</Text>
+      </View> */}
 
       <FlatList
+        style={[
+          todos.find((t) => t.isEditing) && {
+            position: 'absolute',
+            height: Dimensions.get('screen').height,
+            width: Dimensions.get('screen').width,
+          },
+        ]}
         data={filteredTodos}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Animated.View
+          <View
             style={[
-              styles.todoItem,
-              { transform: [{ scale: scaleAnims.get(item.id) || 1 }] },
+              item.isEditing && {
+                top: 0,
+                height: Dimensions.get('screen').height,
+                width: Dimensions.get('screen').width,
+                position: 'absolute',
+                backgroundColor: 'white',
+              },
             ]}
           >
-            <View
+            <Animated.View
               style={[
-                styles.categoryIndicator,
-                {
-                  backgroundColor: CATEGORIES.find(
-                    (c) => c.id === item.category,
-                  )?.color,
-                },
+                styles.todoItem,
+                { transform: [{ scale: scaleAnims.get(item.id) || 1 }] },
               ]}
-            />
-            <Pressable
-              style={styles.checkbox}
-              onPress={() => toggleDone(item.id)}
             >
-              <Text style={styles.checkboxText}>{item.done ? '✓' : ''}</Text>
-            </Pressable>
-
-            {item.isEditing ? (
-              <TextInput
-                style={styles.editInput}
-                value={editingText}
-                onChangeText={setEditingText}
-                autoFocus
-                onBlur={() => saveEdit(item.id)}
-                onSubmitEditing={() => saveEdit(item.id)}
+              <View
+                style={[
+                  styles.categoryIndicator,
+                  {
+                    backgroundColor: CATEGORIES.find(
+                      (c) => c.id === item.category,
+                    )?.color,
+                  },
+                ]}
               />
-            ) : (
               <Pressable
-                style={styles.todoTextContainer}
-                onLongPress={() => startEditing(item)}
+                style={styles.checkbox}
+                onPress={() => toggleDone(item.id)}
               >
-                <Text
-                  style={[styles.todoText, item.done && styles.todoTextDone]}
-                >
-                  {item.text}
-                </Text>
+                <Text style={styles.checkboxText}>{item.done ? '✓' : ''}</Text>
               </Pressable>
-            )}
 
-            <Pressable
-              onPress={() => deleteTodo(item.id)}
-              style={({ pressed }) => [
-                styles.deleteButton,
-                pressed && styles.buttonPressed,
-              ]}
-            >
-              <Text style={styles.deleteButtonText}>×</Text>
-            </Pressable>
-          </Animated.View>
+              {item.isEditing ? (
+                <TextInput
+                  style={styles.editInput}
+                  value={editingText}
+                  onChangeText={setEditingText}
+                  autoFocus
+                  onBlur={() => saveEdit(item.id)}
+                  onSubmitEditing={() => saveEdit(item.id)}
+                />
+              ) : (
+                <Pressable
+                  style={styles.todoTextContainer}
+                  onLongPress={() => startEditing(item)}
+                >
+                  <Text
+                    style={[styles.todoText, item.done && styles.todoTextDone]}
+                  >
+                    {item.text}
+                  </Text>
+                </Pressable>
+              )}
+
+              <Pressable
+                onPress={() => deleteTodo(item.id)}
+                style={({ pressed }) => [
+                  styles.deleteButton,
+                  pressed && styles.buttonPressed,
+                ]}
+              >
+                <Text style={styles.deleteButtonText}>×</Text>
+              </Pressable>
+            </Animated.View>
+          </View>
         )}
       />
     </View>
